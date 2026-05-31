@@ -24,27 +24,41 @@ Cuando el *gate* de validación (Paridad Temporal) falla, el sistema rechaza la 
 | **Aislamiento de Hilo** | Asíncrono | Evita colapsar el sistema principal al delegar la defensa a procesos subyacentes escalables. |
 | **Terminación Crítica** | Isomórfico | Excepción fatal que detiene en O(1) el pipeline de acceso de la amenaza. |
 
-## **4\. Despliegue de Infraestructura**
+## **4\. Despliegue de Infraestructura (Entorno de Producción)**
 
+Integración del protocolo como Middleware de seguridad en un servidor Node.js (Express). El escudo intercepta todo el tráfico entrante antes de que alcance la lógica de negocio.  
+
+import express from 'express';  
 import Zammael99 from './zammael99.js';
 
-// Simulador de interceptación de tráfico  
-const incomingRequest \= {  
-    current\_ip: "192.168.1.50", // Telemetría de origen  
-    auth\_token: "INVALID\_TOKEN", // Inconsistencia detectada  
-    metadata: "UserAgent: HeadlessChrome/Bot"  
-};
+const app \= express();
 
-// Ejecución del Escudo  
-async function enforceSecurity() {  
+// Middleware Forense: Interceptación de capa de red  
+app.use(async (req, res, next) \=\> {  
     try {  
-        await Zammael99.gate(incomingRequest);  
-        console.log("\[RADAR-09\] Acceso Autorizado.");  
-    } catch (error) {  
-        console.error("ALERTA SIGINT:", error.message);  
-    }  
-}
+        // Mapeo dinámico de telemetría real del servidor  
+        const trafficData \= {  
+            current\_ip: req.ip || req.headers\['x-forwarded-for'\],  
+            auth\_token: req.headers\['authorization'\]?.split(' ')\[1\] || "NULL",  
+            metadata: req.headers\['user-agent'\]  
+        };
 
-enforceSecurity();
+        // El Escudo evalúa la carga  
+        await Zammael99.gate(trafficData);  
+          
+        // Si el gate retorna true, la petición avanza  
+        next();  
+    } catch (error) {  
+        // El Escudo neutralizó la amenaza. Respuesta de rechazo absoluto.  
+        res.status(403).json({ error: "ERR\_SIGINT: SOBERANÍA LOGÍSTICA COMPROMETIDA. CONEXIÓN TERMINADA." });  
+    }  
+});
+
+// Rutas protegidas (El atacante nunca llega aquí)  
+app.post('/api/fintech/transfer', (req, res) \=\> {  
+    res.send("Transacción Autorizada.");  
+});
+
+app.listen(3000, () \=\> console.log("\[RADAR-09\] Nodo Central Blindado y Operativo en puerto 3000"));
 
 *Mantenido por Koyotte Nexus. Operaciones de Infraestructura \- Protocolo Alfa 09\.*
